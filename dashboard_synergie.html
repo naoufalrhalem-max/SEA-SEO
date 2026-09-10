@@ -1,0 +1,647 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Randstad USA - Brand vs Non-Brand & Organic vs SEA</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+<style>
+  :root {
+    --brand: #7c3aed; --nb: #f59e0b; --paid: #ec4899; --organic: #10b981; --blue: #3b82f6;
+    --slate-900: #0f172a; --slate-800: #1e293b; --slate-700: #334155; --slate-600: #475569;
+    --slate-500: #64748b; --slate-400: #94a3b8; --slate-300: #cbd5e1; --slate-200: #e2e8f0;
+    --slate-100: #f1f5f9; --slate-50: #f8fafc; --purple-dark: #2d1b69;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--slate-100); color: var(--slate-800); }
+  .header { background: linear-gradient(135deg, var(--purple-dark) 0%, #7c3aed 55%, #2563eb 100%); padding: 26px 48px; color: white; }
+  .header h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
+  .header p { font-size: 13px; color: rgba(255,255,255,0.7); margin-top: 4px; }
+  .header .badges { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+  .header .badge { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px; font-size: 12px; }
+  .container { max-width: 1600px; margin: 0 auto; padding: 24px 32px; }
+
+  /* SEARCH BAR */
+  .search-wrap { position: sticky; top: 0; z-index: 200; background: #1e293b; padding: 14px 48px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .search-box { position: relative; width: 100%; max-width: 900px; }
+  .search-box input { width: 100%; padding: 13px 44px 13px 18px; border: none; border-radius: 10px; font-size: 15px; background: white; color: var(--slate-900); box-shadow: 0 2px 10px rgba(0,0,0,0.25); outline: none; }
+  .search-box input:focus { box-shadow: 0 0 0 3px rgba(124,58,237,0.6); }
+  .search-clear { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); border: none; background: var(--slate-100); width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 15px; color: var(--slate-500); }
+  .search-clear:hover { background: var(--slate-200); color: var(--slate-800); }
+  .brand-toggle { max-width: 900px; width: 100%; display: flex; align-items: center; gap: 10px; font-size: 12px; color: rgba(255,255,255,0.75); }
+  .brand-toggle label { display: flex; align-items: center; gap: 7px; cursor: pointer; font-weight: 600; color: #e2e8f0; }
+  .brand-toggle input { accent-color: #7c3aed; width: 15px; height: 15px; cursor: pointer; }
+  .brand-toggle .toggle-hint { font-size: 11px; color: rgba(255,255,255,0.45); }
+  .dd { position: absolute; top: calc(100% + 6px); left: 0; right: 0; background: white; border-radius: 10px; box-shadow: 0 12px 32px rgba(0,0,0,0.25); max-height: 380px; overflow-y: auto; z-index: 210; display: none; }
+  .dd.show { display: block; }
+  .dd-item { padding: 10px 14px; cursor: pointer; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--slate-100); }
+  .dd-item:hover { background: var(--slate-50); }
+  .dd-item .term { font-size: 14px; font-weight: 600; color: var(--slate-800); flex: 1; }
+  .dd-item .meta { font-size: 11px; color: var(--slate-400); }
+  .dd-empty { padding: 16px; text-align: center; color: var(--slate-400); font-size: 13px; }
+  .chip { display: inline-block; padding: 1px 8px; border-radius: 9px; font-size: 10px; font-weight: 700; letter-spacing: 0.3px; }
+  .chip.paid { background: rgba(236,72,153,0.12); color: #be185d; }
+  .chip.org { background: rgba(16,185,129,0.12); color: #047857; }
+  .chip.brand { background: rgba(124,58,237,0.12); color: #6d28d9; }
+  .chip.nb { background: rgba(245,158,11,0.12); color: #b45309; }
+  .chip.dual { background: rgba(59,130,246,0.12); color: #1d4ed8; }
+
+  /* SECTION */
+  .section-title { font-size: 18px; font-weight: 700; color: var(--slate-900); margin: 30px 0 14px; display: flex; align-items: center; gap: 8px; }
+  .section-title .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .section-title .sub { font-size: 12px; color: var(--slate-400); font-weight: 500; margin-left: 6px; }
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .kpi-card { background: white; border-radius: 12px; padding: 18px 22px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); border-top: 4px solid var(--slate-300); }
+  .kpi-card.brand { border-top-color: var(--brand); }
+  .kpi-card.nb { border-top-color: var(--nb); }
+  .kpi-card.paid { border-top-color: var(--paid); }
+  .kpi-card.organic { border-top-color: var(--organic); }
+  .kpi-card.blue { border-top-color: var(--blue); }
+  .kpi-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--slate-500); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+  .kpi-value { font-size: 26px; font-weight: 700; color: var(--slate-900); line-height: 1; }
+  .kpi-sub { font-size: 12px; color: var(--slate-400); margin-top: 6px; }
+  .kpi-sub b { color: var(--slate-600); }
+  .kpi-sub .bad { color: #e11d48; font-weight: 700; }
+  .kpi-sub .good { color: #047857; font-weight: 700; }
+
+  .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .chart-grid.triple { grid-template-columns: 1fr 1fr 1fr; }
+  .chart-grid.q { grid-template-columns: repeat(4, 1fr); }
+  .chart-card { background: white; border-radius: 12px; padding: 22px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  .chart-card.full { grid-column: 1 / -1; }
+  .chart-card h3 { font-size: 14px; font-weight: 700; color: var(--slate-700); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .chart-box { width: 100%; height: 380px; }
+  .chart-box.tall { height: 480px; }
+  .chart-box.short { height: 260px; }
+
+  .data-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .data-table th { text-align: left; padding: 7px 9px; background: var(--slate-50); color: var(--slate-600); font-weight: 700; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.3px; border-bottom: 2px solid var(--slate-200); cursor: pointer; user-select: none; white-space: nowrap; }
+  .data-table th:hover { background: var(--slate-100); color: var(--brand); }
+  .data-table td { padding: 7px 9px; border-bottom: 1px solid var(--slate-100); }
+  .data-table tr:hover td { background: var(--slate-50); }
+  .data-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+
+  /* DEEP DIVE */
+  #deepDive { display: none; }
+  #deepDive.show { display: block; }
+  .dd-header { background: linear-gradient(135deg, #2d1b69, #7c3aed); color: white; border-radius: 12px; padding: 20px 26px; margin-bottom: 16px; display: flex; align-items: center; gap: 16px; }
+  .dd-header .term { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; }
+  .dd-header .tags { display: flex; gap: 8px; margin-top: 6px; }
+  .dd-header .tag { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 12px; background: rgba(255,255,255,0.18); }
+  .dd-header .tag.cat-brand { background: #fbbf24; color: #78350f; }
+  .dd-header .tag.cat-nb { background: #60a5fa; color: #1e3a8a; }
+  .dd-header .right { margin-left: auto; text-align: right; font-size: 12px; color: rgba(255,255,255,0.75); }
+  .empty-state { text-align: center; padding: 70px 20px; color: var(--slate-400); }
+  .empty-state .icon { font-size: 44px; margin-bottom: 12px; }
+  .empty-state h2 { font-size: 18px; color: var(--slate-600); font-weight: 700; }
+  .empty-state p { font-size: 13px; margin-top: 6px; }
+  .empty-state .kbd { display: inline-block; padding: 2px 8px; border: 1px solid var(--slate-300); border-radius: 5px; background: var(--slate-50); font-size: 12px; font-family: monospace; }
+  .vsplit { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 18px; }
+  .vsplit .panel { background: white; border-radius: 12px; padding: 18px 22px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); border-top: 4px solid var(--slate-300); }
+  .vsplit .panel.paid { border-top-color: var(--paid); }
+  .vsplit .panel.organic { border-top-color: var(--organic); }
+  .vsplit .panel h4 { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--slate-500); margin-bottom: 12px; display: flex; justify-content: space-between; }
+  .metric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .metric { background: var(--slate-50); border-radius: 8px; padding: 10px 12px; }
+  .metric .m-label { font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--slate-400); letter-spacing: 0.3px; }
+  .metric .m-value { font-size: 17px; font-weight: 700; color: var(--slate-900); margin-top: 2px; }
+  .metric .m-value.na { color: var(--slate-400); font-weight: 500; }
+  .metric .m-sub { font-size: 10px; color: var(--slate-400); }
+  .dd-note { font-size: 11px; color: var(--slate-400); margin-top: 6px; font-style: italic; }
+
+  .hint { font-size: 11px; color: var(--slate-400); margin: 6px 0 0; }
+  .table-controls { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+  .table-controls label { font-size: 11px; font-weight: 700; color: var(--slate-500); text-transform: uppercase; }
+  .table-controls select { padding: 4px 8px; border: 1px solid var(--slate-300); border-radius: 6px; font-size: 12px; }
+  .result-count { font-size: 11px; color: var(--slate-400); margin-left: auto; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Randstad USA — Brand vs Non-Brand · Organic vs SEA</h1>
+  <p>Google Ads + GSC · January to July 2026</p>
+
+</div>
+
+<div class="search-wrap">
+  <div class="search-box">
+    <input type="text" id="kwSearch" placeholder="Type a keyword or query... (e.g. &quot;jobs near me&quot;, &quot;warehouse job&quot;, &quot;temp agency&quot;)" autocomplete="off">
+    <button class="search-clear" id="kwClear" title="Clear">✕</button>
+    <div class="dd" id="kwDropdown"></div>
+  </div>
+  <div class="brand-toggle">
+    <label><input type="checkbox" id="brandToggle"> Show brand terms (randstad & close variants)</label>
+    <span class="toggle-hint">off by default — 32,686 non-brand terms available</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- ============ KEYWORD DEEP DIVE ============ -->
+  <div id="deepDive">
+    <div class="dd-header" id="ddHeader"></div>
+    <div class="vsplit">
+      <div class="panel paid">
+        <h4>Paid (SEA) — <span id="ddPaidTag"></span></h4>
+        <div class="metric-grid" id="ddPaidMetrics"></div>
+      </div>
+      <div class="panel organic">
+        <h4>Organic (SEO) — <span id="ddOrgTag"></span></h4>
+        <div class="metric-grid" id="ddOrgMetrics"></div>
+      </div>
+    </div>
+    <div class="dd-note">All values are for <span id="ddNoteTerm"></span> only. Sources: Google Ads (paid), GSC (organic).</div>
+    <div class="chart-grid triple">
+      <div class="chart-card">
+        <h3>Paid vs Organic Clicks</h3>
+        <div class="chart-box short" id="ddPaidOrgChart"></div>
+      </div>
+      <div class="chart-card">
+        <h3>Device Split (Paid)</h3>
+        <div class="chart-box short" id="ddDeviceChart"></div>
+      </div>
+      <div class="chart-card">
+        <h3>Match Type (Paid)</h3>
+        <div class="chart-box short" id="ddMatchChart"></div>
+      </div>
+    </div>
+    <div class="chart-card full">
+      <h3>Top Campaigns Running This Keyword (Paid)</h3>
+      <div class="chart-box tall" id="ddCampaignChart"></div>
+    </div>
+  </div>
+  </div>
+
+  <!-- ============ EMPTY STATE ============ -->
+  <div class="empty-state" id="emptyState">
+    <div class="icon"><svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg></div>
+    <h2></h2>
+    <p>Type in the search bar above. A dropdown will suggest keywords from Google Ads (paid) and GSC (organic).<br>
+    Select one to deep-dive into its paid &amp; organic performance — every visual updates.</p>
+    <p style="margin-top:10px;">Popular terms: <span class="kbd">jobs near me</span> <span class="kbd">warehouse job</span> <span class="kbd">temp agency</span> <span class="kbd">customer service representative</span></p>
+  </div>
+
+  <!-- ============ BRAND vs NON-BRAND ============ -->
+  <div class="section-title"><span class="dot" style="background:var(--brand);width:10px;height:10px;"></span>Brand vs Non-Brand <span class="sub">Brand = terms containing "randstad" / close variants (ranstad, randstand…) / campaigns tagged [BR]</span></div>
+  <div class="kpi-grid" id="brandNbGrid"></div>
+  <div class="chart-grid">
+    <div class="chart-card">
+      <h3>Budget Split — Brand vs Non-Brand (Paid spend)</h3>
+      <div class="chart-box" id="brandDonutChart"></div>
+    </div>
+    <div class="chart-card">
+      <h3>Cost per Conversion — Brand vs Non-Brand</h3>
+      <div class="chart-box" id="brandCpaChart"></div>
+    </div>
+  </div>
+  <div class="compare-grid">
+    <div class="chart-card">
+      <h3>Top Brand Queries (Organic — GSC)</h3>
+      <div id="brandOrgTable"></div>
+    </div>
+    <div class="chart-card">
+      <h3>Top Non-Brand Queries (Organic — GSC)</h3>
+      <div id="nbOrgTable"></div>
+    </div>
+  </div>
+  <div class="chart-card full" style="margin-bottom:0;">
+    <h3>Organic Clicks — Brand vs Non-Brand</h3>
+    <div class="chart-box short" id="brandOrgChart"></div>
+  </div>
+
+  <!-- ============ ORGANIC vs SEA ============ -->
+  <div class="section-title"><span class="dot" style="background:var(--organic);width:10px;height:10px;"></span>Organic vs SEA (overview) <span id="overviewScope" class="sub"></span></div>
+  <div class="compare-grid">
+    <div class="chart-card">
+      <h3><span style="color:var(--paid)">SEA (Paid)</span> — Google Ads funnel</h3>
+      <div id="paidFunnelChart" style="width:100%;height:300px;"></div>
+    </div>
+    <div class="chart-card">
+      <h3><span style="color:var(--organic)">SEO (Organic)</span> — GSC funnel (Impressions → Clicks)</h3>
+      <div id="organicFunnelChart" style="width:100%;height:300px;"></div>
+    </div>
+  </div>
+  <div class="chart-grid">
+    <div class="chart-card">
+      <h3>Paid vs Organic — Key Metrics</h3>
+      <div class="chart-box" id="compareChart"></div>
+    </div>
+    <div class="chart-card">
+      <h3>Top 25 Overlapping Keywords (search both paid &amp; organic)</h3>
+      <div class="chart-box tall" id="overlapChart"></div>
+    </div>
+  </div>
+</div>
+
+<script src="dashboard_data.js"></script>
+<script>
+/* ===== BRAND RECLASSIFICATION: randstad + close variants (typos) ===== */
+window.BRAND_RULE = function (t) {
+  if (!t) return false;
+  var l = String(t).toLowerCase();
+  if (l.indexOf('randstad') !== -1) return true;
+  var n = l.replace(/[^a-z0-9]/g, '');
+  return /^(rands|ranst|randt|randa)/.test(n);
+};
+(function (D) {
+  var rule = window.BRAND_RULE;
+  (D.search_terms || []).forEach(function (s) { s.is_brand = rule(s.term); });
+  (D.all_organic_queries || []).forEach(function (q) { q.is_brand = rule(q.query); });
+  var oq = D.all_organic_queries || [];
+  var b = oq.filter(function (q) { return q.is_brand; });
+  var nb = oq.filter(function (q) { return !q.is_brand; });
+  function agg(arr) {
+    return {
+      keywords: arr.length,
+      clicks: arr.reduce(function (s, q) { return s + q.clicks; }, 0),
+      impressions: arr.reduce(function (s, q) { return s + q.impressions; }, 0)
+    };
+  }
+  function top(arr) {
+    return arr.slice().sort(function (a, b) { return b.clicks - a.clicks; })
+      .map(function (q) { return { query: q.query, clicks: q.clicks, impressions: q.impressions, position: q.position }; });
+  }
+  D.brand_nb.organic_gsc = { brand: agg(b), non_brand: agg(nb) };
+  D.brand_nb.top_organic_brand = top(b);
+  D.brand_nb.top_organic_non_brand = top(nb);
+})(window.DASHBOARD_DATA);
+</script>
+<script>
+const D = window.DASHBOARD_DATA;
+const charts = {};
+const C = {
+  brand: '#7c3aed', nb: '#f59e0b', paid: '#ec4899', organic: '#10b981', blue: '#3b82f6',
+  gray: '#cbd5e1', slate: '#94a3b8'
+};
+
+function num(v) { return v == null ? '0' : Math.round(v).toLocaleString('en-US'); }
+function usd(v) { return '$' + num(v); }
+function pct2(v) { return isFinite(v) ? v.toFixed(1) + '%' : '—'; }
+function cpaF(v) { return (v && isFinite(v)) ? '$' + v.toFixed(2) : '—'; }
+
+/* ============ SEARCH INDEX ============ */
+const searchItems = D.search_terms || [];
+let showBrandTerms = false;
+
+const dd = document.getElementById('kwDropdown');
+const searchInput = document.getElementById('kwSearch');
+let selectedTerm = null;
+
+function getSearchPool() { return showBrandTerms ? searchItems : searchItems.filter(it => !it.is_brand); }
+
+function renderDropdown(query) {
+  const pool = getSearchPool();
+  const results = query
+    ? pool.filter(it => it.term.includes(query.toLowerCase()))
+      .sort((a, b) => {
+        const ap = a.term.startsWith(query.toLowerCase()) ? 0 : 1;
+        const bp = b.term.startsWith(query.toLowerCase()) ? 0 : 1;
+        if (ap !== bp) return ap - bp;
+        return b.clicks - a.clicks;
+      }).slice(0, 15)
+    : pool.slice(0, 15);
+  if (!results.length) { dd.innerHTML = '<div class="dd-empty">No match — try another term</div>'; dd.classList.add('show'); return; }
+  dd.innerHTML = results.map(it => {
+    const chips = [];
+    if (it.paid && it.organic) chips.push('<span class="chip dual">PAID+ORG</span>');
+    else if (it.paid) chips.push('<span class="chip paid">PAID</span>');
+    else chips.push('<span class="chip org">ORGANIC</span>');
+    if (it.is_brand) chips.push('<span class="chip brand">BRAND</span>');
+    else chips.push('<span class="chip nb">NON-BRAND</span>');
+    return `<div class="dd-item" data-term="${it.term}"><span class="term">${it.term}</span><span class="meta">${chips.join(' ')}<span style="margin-left:6px;">${num(it.clicks)} clicks</span></span></div>`;
+  }).join('');
+  dd.classList.add('show');
+  dd.querySelectorAll('.dd-item').forEach(el => el.addEventListener('click', () => selectTerm(el.getAttribute('data-term'))));
+}
+
+function selectTerm(term) {
+  selectedTerm = term;
+  searchInput.value = term;
+  dd.classList.remove('show');
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('deepDive').classList.add('show');
+  document.getElementById('deepDive').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  renderDeepDive();
+  renderOverview();
+}
+
+function clearSelection() {
+  selectedTerm = null;
+  searchInput.value = '';
+  dd.classList.remove('show');
+  document.getElementById('deepDive').classList.remove('show');
+  document.getElementById('emptyState').style.display = '';
+  renderOverview();
+}
+
+searchInput.addEventListener('input', e => { renderDropdown(e.target.value.trim()); });
+searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') { const f = dd.querySelector('.dd-item'); if (f) selectTerm(f.getAttribute('data-term')); } });
+searchInput.addEventListener('focus', e => { renderDropdown(searchInput.value.trim()); });
+document.getElementById('brandToggle').addEventListener('change', e => {
+  showBrandTerms = e.target.checked;
+  if (dd.classList.contains('show')) renderDropdown(searchInput.value.trim());
+});
+document.addEventListener('click', e => { if (!e.target.closest('.search-box') && !e.target.closest('.brand-toggle')) dd.classList.remove('show'); });
+document.getElementById('kwClear').addEventListener('click', clearSelection);
+
+/* ============ DEEP DIVE ============ */
+function getPaidKw(term) { return D.all_keywords.find(k => k.keyword === term.toLowerCase()); }
+function getOrgQ(term) { return D.all_organic_queries.find(q => q.query.toLowerCase() === term.toLowerCase()); }
+function socializeKey(term) { return term.toLowerCase(); }
+
+function renderDeepDive() {
+  const term = selectedTerm;
+  const kw = getPaidKw(term);
+  const oq = getOrgQ(term);
+  const isBrand = (kw && kw.is_brand) || (oq && oq.is_brand) || window.BRAND_RULE(term);
+
+  document.getElementById('ddHeader').innerHTML = `
+    <div>
+      <div class="term">${term}</div>
+      <div class="tags">
+        ${kw ? '<span class="tag">PAID (Google Ads)</span>' : ''}
+        ${oq ? '<span class="tag">ORGANIC (GSC)</span>' : ''}
+        <span class="tag ${isBrand ? 'cat-brand' : 'cat-nb'}">${isBrand ? 'BRAND' : 'NON-BRAND'}</span>
+      </div>
+    </div>
+    <div class="right">Analysis period: Jan–Jul 2026</div>`;
+
+  document.getElementById('ddNoteTerm').textContent = term;
+
+  // Paid metrics
+  const pm = document.getElementById('ddPaidMetrics');
+  document.getElementById('ddPaidTag').innerHTML = kw ? '<span class="chip paid">PAID</span>' : '<span class="chip nb" style="background:rgba(148,163,184,.15);color:var(--slate-400);">NO PAID DATA</span>';
+  pm.innerHTML = kw ? `
+    <div class="metric"><div class="m-label">Clicks</div><div class="m-value">${num(kw.clicks)}</div><div class="m-sub">${num(kw.impressions)} impr &middot; CTR ${pct2(kw.ctr)}</div></div>
+    <div class="metric"><div class="m-label">Spend</div><div class="m-value">${usd(kw.cost)}</div><div class="m-sub">CPC ${curr(kw.cpc)}</div></div>
+    <div class="metric"><div class="m-label">Conversions</div><div class="m-value">${num(kw.conversions)}</div><div class="m-sub">Value ${usd(kw.conversion_value)}</div></div>
+    <div class="metric"><div class="m-label">CPA</div><div class="m-value">${cpaF(kw.cpa)}</div><div class="m-sub">${kw.top_match || ''}</div></div>`
+  : `<div class="metric" style="grid-column:1/-1;text-align:center;color:var(--slate-400);font-size:13px;padding:30px 0;">No paid data for this term — it is organic-only.</div>`;
+
+  // Organic metrics
+  const om = document.getElementById('ddOrgMetrics');
+  document.getElementById('ddOrgTag').innerHTML = oq ? '<span class="chip org">ORGANIC</span>' : '<span class="chip nb" style="background:rgba(148,163,184,.15);color:var(--slate-400);">NOT IN TOP 1000 GSC</span>';
+  om.innerHTML = oq ? `
+    <div class="metric"><div class="m-label">Clicks</div><div class="m-value">${num(oq.clicks)}</div><div class="m-sub">${num(oq.impressions)} impr</div></div>
+    <div class="metric"><div class="m-label">Position</div><div class="m-value">${oq.position.toFixed(1)}</div><div class="m-sub"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${oq.position <= 3 ? '#10b981' : oq.position <= 5 ? '#f59e0b' : '#ef4444'};margin-right:5px;"></span>${oq.position <= 3 ? 'Top 3' : oq.position <= 5 ? 'Top 5' : 'Below top 5'}</div></div>
+    <div class="metric"><div class="m-label">CTR</div><div class="m-value">${oq.ctr}</div><div class="m-sub">click-through rate</div></div>`
+  : `<div class="metric" style="grid-column:1/-1;text-align:center;color:var(--slate-400);font-size:13px;padding:30px 0;">Not in the GSC top 1000 queries — or not indexed yet. SEO opportunity if you pay for it.</div>`;
+
+  // Paid vs organic clicks chart
+  charts.ddPaidOrg = ensureChart('ddPaidOrgChart', charts.ddPaidOrg);
+  charts.ddPaidOrg.setOption({
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    grid: { left: 55, right: 20, top: 20, bottom: 30 },
+    xAxis: { type: 'value', axisLabel: { fontSize: 11 } },
+    yAxis: { type: 'category', data: ['Organic', 'Paid'], axisLabel: { fontSize: 12, fontWeight: 700 } },
+    series: [{
+      type: 'bar', barWidth: 26,
+      data: [
+        { value: oq ? oq.clicks : 0, itemStyle: { color: C.organic } },
+        { value: kw ? kw.clicks : 0, itemStyle: { color: C.paid } }
+      ],
+      label: { show: true, position: 'right', fontSize: 12, fontWeight: 700, formatter: p => num(p.value) }
+    }]
+  });
+
+  // Device
+  charts.ddDevice = ensureChart('ddDeviceChart', charts.ddDevice);
+  const devData = kw ? Object.entries(kw.devices).map(([k, v]) => ({ name: k.replace(' phones', '').replace('Computers', 'Desktop'), value: v })) : [];
+  charts.ddDevice.setOption({
+    tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+    series: [{ type: 'pie', radius: ['35%', '65%'], label: { formatter: '{b}\n{d}%', fontSize: 11 }, data: devData.length ? devData : [{ name: 'No data', value: 1, itemStyle: { color: C.slate } }] }]
+  });
+
+  // Match type
+  charts.ddMatch = ensureChart('ddMatchChart', charts.ddMatch);
+  const mtData = kw ? Object.entries(kw.match_types).map(([k, v]) => ({ name: k.replace(' match', '').toUpperCase(), value: v })) : [];
+  charts.ddMatch.setOption({
+    tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+    series: [{ type: 'pie', radius: ['35%', '65%'], label: { formatter: '{b}\n{d}%', fontSize: 11 }, data: mtData.length ? mtData : [{ name: 'No data', value: 1, itemStyle: { color: C.slate } }] }]
+  });
+
+  // Campaigns
+  charts.ddCampaign = ensureChart('ddCampaignChart', charts.ddCampaign);
+  const camps = (kw && kw.top_campaigns ? kw.top_campaigns : []).reverse();
+  const camLabels = camps.map(c => { let n = c.campaign; if (n.length > 42) n = n.substring(0, 42) + '...'; return n.replace(/.*?\[|\].*/g, ''); });
+  charts.ddCampaign.setOption({
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: p => `<strong>${(kw && kw.top_campaigns ? kw.top_campaigns : [])[p[0].dataIndex].campaign}</strong><br/>Clicks: ${num(p[0].value)}` },
+    grid: { left: 130, right: 40, top: 10, bottom: 10 },
+    xAxis: { type: 'value', axisLabel: { fontSize: 10 }, show: camps.length > 0 },
+    yAxis: { type: 'category', data: camLabels, axisLabel: { fontSize: 10 }, show: camps.length > 0 },
+    series: [{ type: 'bar', barWidth: 14, data: camps.map(c => c.clicks), itemStyle: { color: C.blue }, label: { show: camps.length > 0, position: 'right', fontSize: 10, formatter: p => num(p.value) } }],
+    graphic: camps.length ? [] : [{ type: 'text', left: 'center', top: 'middle', style: { text: 'Not in top campaigns (long-tail term)', fill: '#94a3b8', fontSize: 13 } }]
+  });
+}
+
+function curr(v) { return v ? '$' + v.toFixed(2) : '—'; }
+function ensureChart(id, existing) { if (existing) { existing.resize(); return existing; } return echarts.init(document.getElementById(id)); }
+
+/* ============ BRAND vs NON-BRAND ============ */
+function renderBrandNB() {
+  const bn = D.brand_nb;
+  const b = bn.campaigns_paid.brand, nb = bn.campaigns_paid.non_brand, app = bn.campaigns_paid.app, tot = bn.campaigns_paid.total;
+  const kb = bn.formula_paid.brand, knb = bn.formula_paid.non_brand;
+  const bShare = (b.cost / tot.cost) * 100, nbShare = (nb.cost / tot.cost) * 100;
+  const bConvShare = (b.conversions / tot.conversions) * 100;
+
+  const grid = document.getElementById('brandNbGrid');
+  grid.innerHTML = '';
+  const cards = [
+    { cls: 'brand', label: 'Brand spend', value: usd(kb.cost), sub: `<b>${pct2(bShare)}</b> of budget · ${num(kb.keywords)} keywords`, note: '' },
+    { cls: 'nb', label: 'Non-Brand spend', value: usd(knb.cost), sub: `<b>${pct2(nbShare)}</b> of budget · ${num(knb.keywords)} keywords`, note: '' },
+    { cls: 'brand', label: 'Brand conversions', value: num(kb.conversions), sub: `<b>${pct2(bConvShare)}</b> of all conversions`, note: '' },
+    { cls: 'nb', label: 'Non-Brand conversions', value: num(knb.conversions), sub: `<b>${pct2(100 - bConvShare)}</b> of all conversions`, note: '' },
+    { cls: 'brand', label: 'Brand CPA', value: cpaF(kb.cpa), sub: `<span class="good">efficient</span> — baseline for all paid`, note: '' },
+    { cls: 'nb', label: 'Non-Brand CPA', value: cpaF(knb.cpa), sub: `<span class="bad">${(knb.cpa / kb.cpa).toFixed(0)}× more expensive</span> than brand`, note: '' },
+    { cls: 'paid', label: 'App campaigns (in Non-Brand)', value: usd(app.cost), sub: `${pct2((app.cost / tot.cost) * 100)} of budget · CPA <b>${app.cpa.toFixed(2)}</b>`, note: '' },
+    { cls: 'organic', label: 'Organic clicks', value: num(D.summary.organic_gsc.clicks), sub: `Brand <b>${num(bn.organic_gsc.brand.clicks)}</b> · Non-Brand <b>${num(bn.organic_gsc.non_brand.clicks)}</b>`, note: '' }
+  ];
+  cards.forEach(c => {
+    const d = document.createElement('div');
+    d.className = `kpi-card ${c.cls}`;
+    d.innerHTML = `<div class="kpi-label">${c.label}</div><div class="kpi-value">${c.value}</div><div class="kpi-sub">${c.sub}</div>`;
+    grid.appendChild(d);
+  });
+
+  // Budget donut
+  charts.brandDonut = ensureChart('brandDonutChart', charts.brandDonut);
+  charts.brandDonut.setOption({
+    tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+    legend: { bottom: 0, textStyle: { fontSize: 12 } },
+    series: [{
+      type: 'pie', radius: ['38%', '70%'], center: ['50%', '44%'],
+      label: { formatter: '{b}\n{d}%', fontSize: 11 },
+      data: [
+        { value: Math.round(b.cost), name: 'Brand', itemStyle: { color: C.brand } },
+        { value: Math.round(nb.cost - app.cost), name: 'Non-Brand', itemStyle: { color: C.nb } },
+        { value: Math.round(app.cost), name: 'Non-Brand (App)', itemStyle: { color: '#fb7185' } }
+      ]
+    }]
+  });
+
+  // CPA bar
+  charts.brandCpa = ensureChart('brandCpaChart', charts.brandCpa);
+  charts.brandCpa.setOption({
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    grid: { left: 110, right: 45, top: 25, bottom: 30 },
+    xAxis: { type: 'value', axisLabel: { fontSize: 11, formatter: v => '$' + v } },
+    yAxis: { type: 'category', data: ['Non-Brand (App)', 'Non-Brand', 'Brand'], axisLabel: { fontSize: 12, fontWeight: 700 } },
+    series: [{
+      type: 'bar', barWidth: 24,
+      data: [
+        { value: +app.cpa.toFixed(2), itemStyle: { color: '#fb7185' } },
+        { value: +knb.cpa.toFixed(2), itemStyle: { color: C.nb } },
+        { value: +kb.cpa.toFixed(2), itemStyle: { color: C.brand } }
+      ],
+      min: 0,
+      label: { show: true, position: 'right', fontSize: 12, fontWeight: 700, formatter: p => '$' + p.value.toFixed(2) }
+    }]
+  });
+
+  // Organic brand vs nb
+  charts.brandOrg = ensureChart('brandOrgChart', charts.brandOrg);
+  charts.brandOrg.setOption({
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    grid: { left: 90, right: 45, top: 25, bottom: 30 },
+    xAxis: { type: 'value', axisLabel: { fontSize: 11, formatter: v => num(v) } },
+    yAxis: { type: 'category', data: ['Non-Brand', 'Brand'], axisLabel: { fontSize: 12, fontWeight: 700 } },
+    series: [{
+      type: 'bar', barWidth: 24,
+      data: [
+        { value: bn.organic_gsc.non_brand.clicks, itemStyle: { color: C.nb } },
+        { value: bn.organic_gsc.brand.clicks, itemStyle: { color: C.brand } }
+      ],
+      label: { show: true, position: 'right', fontSize: 12, fontWeight: 700, formatter: p => num(p.value) }
+    }]
+  });
+
+  // Tables
+  const tbrand = D.brand_nb.top_organic_brand.slice(0, 15);
+  const tnb = D.brand_nb.top_organic_non_brand.slice(0, 15);
+  renderTable(tbrand, [
+    { label: 'Query', key: 'query', format: v => `<strong>${v}</strong>` },
+    { label: 'Clicks', key: 'clicks', num: true, format: v => num(v) },
+    { label: 'Impr.', key: 'impressions', num: true, format: v => num(v) },
+    { label: 'Pos', key: 'position', num: true, format: v => v.toFixed(1) }
+  ], 'brandOrgTable');
+  renderTable(tnb, [
+    { label: 'Query', key: 'query', format: v => `<strong>${v}</strong>` },
+    { label: 'Clicks', key: 'clicks', num: true, format: v => num(v) },
+    { label: 'Impr.', key: 'impressions', num: true, format: v => num(v) },
+    { label: 'Pos', key: 'position', num: true, format: v => v.toFixed(1) }
+  ], 'nbOrgTable');
+}
+
+/* ============ ORGANIC vs SEA ============ */
+function renderOverview() {
+  const kw = selectedTerm ? getPaidKw(selectedTerm) : null;
+  const oq = selectedTerm ? getOrgQ(selectedTerm) : null;
+  const scoped = !!selectedTerm;
+  document.getElementById('overviewScope').innerHTML = scoped
+    ? `Scope: <b>${selectedTerm}</b>` + (kw ? ` &middot; paid = bid keyword` : '') + (oq ? ` &middot; organic = GSC query` : '')
+    : '— all keywords';
+
+  // Paid funnel
+  const paidEmpty = scoped && (!kw || kw.impressions <= 0);
+  const paidData = [
+    { value: (kw && !paidEmpty) ? kw.impressions : D.summary.paid.impressions, name: 'Impressions', color: '#f9a8d4' },
+    { value: (kw && !paidEmpty) ? kw.clicks : D.summary.paid.clicks, name: 'Clicks', color: '#f472b6' },
+    { value: (kw && !paidEmpty) ? Math.round(kw.conversions) : D.summary.paid.conversions, name: 'Conversions', color: '#db2777' },
+    { value: (kw && !paidEmpty) ? Math.round(kw.conversion_value) : Math.round(D.summary.paid.conversion_value), name: 'Conv value ($)', color: '#9d174d' }
+  ];
+  charts.paidFunnel = ensureChart('paidFunnelChart', charts.paidFunnel);
+  charts.paidFunnel.setOption({
+    tooltip: { trigger: 'item', formatter: p => p.name + ': ' + num(p.value) },
+    series: [{
+      type: 'funnel', left: '15%', top: 10, bottom: 20, width: '70%', minSize: '20%', maxSize: '100%',
+      sort: 'descending', gap: 2,
+      label: { show: true, position: 'inside', fontSize: 11, color: '#fff', formatter: '{b}\n{c}' },
+      itemStyle: { borderColor: '#fff', borderWidth: 1 },
+      data: paidEmpty
+        ? [{ value: 1, name: 'No paid data', label: { color: '#64748b' }, itemStyle: { color: '#e2e8f0' } }]
+        : paidData.map(d => ({ value: d.value, name: d.name, itemStyle: { color: d.color } }))
+    }]
+  }, true);
+
+  // Organic funnel
+  const orgEmpty = scoped && (!oq || oq.impressions <= 0);
+  const orgInfo = oq ? `Position ${oq.position.toFixed(1)} &middot; CTR ${oq.ctr}%` : '';
+  charts.organicFunnel = ensureChart('organicFunnelChart', charts.organicFunnel);
+  charts.organicFunnel.setOption({
+    tooltip: { trigger: 'item', formatter: p => (orgInfo ? orgInfo + '<br/>' : '') + p.name + ': ' + num(p.value) },
+    series: [{
+      type: 'funnel', left: '15%', top: 10, bottom: 20, width: '70%', minSize: '20%', maxSize: '100%',
+      sort: 'descending', gap: 2,
+      label: { show: true, position: 'inside', fontSize: 11, color: '#064e3b', formatter: '{b}\n{c}' },
+      itemStyle: { borderColor: '#fff', borderWidth: 1 },
+      data: orgEmpty
+        ? [{ value: 1, name: 'Not in GSC top 1000', label: { color: '#0f766e' }, itemStyle: { color: '#d1fae5' } }]
+        : [
+          { value: (oq && !orgEmpty) ? oq.impressions : D.summary.organic_gsc.impressions, name: 'Impressions', itemStyle: { color: '#a7f3d0' } },
+          { value: (oq && !orgEmpty) ? oq.clicks : D.summary.organic_gsc.clicks, name: 'Clicks (GSC)', itemStyle: { color: '#34d399' } }
+        ]
+    }]
+  }, true);
+
+  // Compare chart
+  charts.compare = ensureChart('compareChart', charts.compare);
+  const metrics = ['Impressions', 'Clicks'];
+  const paidVals = paidEmpty ? [0, 0] : [kw ? kw.impressions : D.summary.paid.impressions, kw ? kw.clicks : D.summary.paid.clicks];
+  const orgVals = orgEmpty ? [0, 0] : [oq ? oq.impressions : D.summary.organic_gsc.impressions, oq ? oq.clicks : D.summary.organic_gsc.clicks];
+  const anyZero = paidVals.concat(orgVals).some(v => v === 0);
+  const useLog = !anyZero && Math.max.apply(null, paidVals.concat(orgVals)) > 500000;
+  charts.compare.setOption({
+    tooltip: { trigger: 'axis' },
+    legend: { data: ['Paid (SEA)', 'Organic (SEO)'], bottom: 0 },
+    grid: { left: 55, right: 30, top: 20, bottom: 40 },
+    xAxis: { type: 'category', data: metrics, axisLabel: { fontSize: 11 } },
+    yAxis: { type: useLog ? 'log' : 'value', axisLabel: { fontSize: 10, formatter: v => v >= 1e6 ? (v/1e6).toFixed(1)+'M' : v >= 1e3 ? (v/1e3).toFixed(0)+'K' : v } },
+    series: [
+      { name: 'Paid (SEA)', type: 'bar', data: paidVals, itemStyle: { color: C.paid } },
+      { name: 'Organic (SEO)', type: 'bar', data: orgVals, itemStyle: { color: C.organic } }
+    ]
+  }, true);
+
+  // Overlap
+  charts.overlap = ensureChart('overlapChart', charts.overlap);
+  const ol = D.overlap_keywords.slice(0, 25);
+  charts.overlap.setOption({
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    legend: { data: ['Paid Clicks', 'Organic Clicks'], bottom: 0, textStyle: { fontSize: 11 } },
+    grid: { left: 140, right: 20, top: 10, bottom: 40 },
+    xAxis: { type: 'value', axisLabel: { fontSize: 10 } },
+    yAxis: { type: 'category', data: ol.map(k => k.keyword.length > 22 ? k.keyword.substring(0,22)+'...' : k.keyword), inverse: true, axisLabel: { fontSize: 10 } },
+    series: [
+      { name: 'Paid Clicks', type: 'bar', stack: 't', data: ol.map(k => k.paid_clicks), itemStyle: { color: C.paid }, barWidth: 13 },
+      { name: 'Organic Clicks', type: 'bar', stack: 't', data: ol.map(k => k.organic_clicks), itemStyle: { color: C.organic }, barWidth: 13 }
+    ]
+  });
+}
+
+/* ============ TABLE ============ */
+function renderTable(data, columns, containerId) {
+  let html = '<table class="data-table"><thead><tr>';
+  columns.forEach(c => { html += `<th class="${c.num ? 'num' : ''}">${c.label}</th>`; });
+  html += '</tr></thead><tbody>';
+  data.forEach(row => {
+    html += '<tr>';
+    columns.forEach(c => {
+      const v = c.format ? c.format(row[c.key], row) : (row[c.key] || '');
+      html += `<td class="${c.num ? 'num' : ''}">${v}</td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById(containerId).innerHTML = html;
+}
+
+/* ============ INIT ============ */
+window.addEventListener('resize', () => Object.values(charts).forEach(c => c && c.resize()));
+renderBrandNB();
+renderOverview();
+</script>
+</body>
+</html>
