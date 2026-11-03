@@ -174,15 +174,6 @@
   </div>
   </div>
 
-  <!-- ============ EMPTY STATE ============ -->
-  <div class="empty-state" id="emptyState">
-    <div class="icon"><svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg></div>
-    <h2></h2>
-    <p>Type in the search bar above. A dropdown will suggest keywords from Google Ads (paid) and GSC (organic).<br>
-    Select one to deep-dive into its paid &amp; organic performance — every visual updates.</p>
-    <p style="margin-top:10px;">Popular terms: <span class="kbd">jobs near me</span> <span class="kbd">warehouse job</span> <span class="kbd">temp agency</span> <span class="kbd">customer service representative</span></p>
-  </div>
-
   <!-- ============ BRAND vs NON-BRAND ============ -->
   <div class="section-title"><span class="dot" style="background:var(--brand);width:10px;height:10px;"></span>Brand vs Non-Brand <span class="sub">Brand = terms containing "randstad" / close variants (ranstad, randstand…) / campaigns tagged [BR]</span></div>
   <div class="kpi-grid" id="brandNbGrid"></div>
@@ -235,7 +226,7 @@
   </div>
 </div>
 
-<script src="dashboard_data.js"></script>
+<script src="dashboard_data_modele.js"></script>
 <script>
 /* ===== BRAND RECLASSIFICATION: randstad + close variants (typos) ===== */
 window.BRAND_RULE = function (t) {
@@ -320,7 +311,6 @@ function selectTerm(term) {
   selectedTerm = term;
   searchInput.value = term;
   dd.classList.remove('show');
-  document.getElementById('emptyState').style.display = 'none';
   document.getElementById('deepDive').classList.add('show');
   document.getElementById('deepDive').scrollIntoView({ behavior: 'smooth', block: 'start' });
   renderDeepDive();
@@ -332,7 +322,6 @@ function clearSelection() {
   searchInput.value = '';
   dd.classList.remove('show');
   document.getElementById('deepDive').classList.remove('show');
-  document.getElementById('emptyState').style.display = '';
   renderOverview();
 }
 
